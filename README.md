@@ -1,6 +1,6 @@
 # Java-Client
 ![CodeGame Version](https://img.shields.io/badge/CodeGame-v0.7-orange)
-![Target](https://img.shields.io/badge/Framework-.Net%206-blue)
+![Java Version](https://img.shields.io/badge/Java-17-brown)
 
 The Java client library for [CodeGame](https://code-game.org).
 
