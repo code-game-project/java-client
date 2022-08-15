@@ -1,9 +1,13 @@
 package org.codegame.client;
 
-public class GameSocket 
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
-    }
+public class GameSocket {
+	private Api api;
+
+	public GameSocket(String url) {
+		api = new Api(url);
+	}
+
+	public Api getApi() {
+		return api;
+	}
 }
