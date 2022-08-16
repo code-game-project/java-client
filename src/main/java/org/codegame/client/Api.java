@@ -2,9 +2,12 @@ package org.codegame.client;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -12,6 +15,7 @@ import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
 
 public class Api {
 	private String url;
@@ -47,9 +51,16 @@ public class Api {
 		return fetchJSON("/api/info", GameInfo.class);
 	}
 
+	public <T> T fetchGameConfig(String gameId, Class<T> configClass) throws IOException {
+		GameConfigResponse<T> response = fetchJSON("/api/games/" + gameId,
+				TypeToken.getParameterized(GameConfigResponse.class,
+						configClass).getType());
+		return response.config;
+	}
+
 	public class GameData {
 		@SerializedName("game_id")
-		public String Id;
+		public String id;
 		@SerializedName("join_secret")
 		public String joinSecret;
 	}
@@ -77,9 +88,9 @@ public class Api {
 
 	public class PlayerData {
 		@SerializedName("player_id")
-		public String playerId;
+		public String id;
 		@SerializedName("player_secret")
-		public String playerSecret;
+		public String secret;
 	}
 
 	public PlayerData createPlayer(String gameId, String username) throws IOException {
@@ -98,6 +109,20 @@ public class Api {
 		data.username = username;
 		data.joinSecret = joinSecret;
 		return postJSON("/api/games/" + gameId + "/players", data, PlayerData.class);
+	}
+
+	private class FetchUsernameResponse {
+		@SerializedName("username")
+		public String username;
+	}
+
+	public String fetchUsername(String gameId, String playerId) throws IOException {
+		return fetchJSON("/api/games/" + gameId + "/players/" + playerId, FetchUsernameResponse.class).username;
+	}
+
+	public HashMap<String, String> fetchPlayers(String gameId) throws IOException {
+		return fetchJSON("/api/games/" + gameId + "/players",
+				TypeToken.getParameterized(HashMap.class, String.class, String.class).getType());
 	}
 
 	private <T> T postJSON(String endpoint, Object requestData, Class<T> responseType) throws IOException {
@@ -126,6 +151,20 @@ public class Api {
 	}
 
 	private <T> T fetchJSON(String endpoint, Class<T> responseType) throws IOException {
+		var obj = new URL(this.baseURL + endpoint);
+		var con = (HttpURLConnection) obj.openConnection();
+		con.setRequestMethod("GET");
+		con.setRequestProperty("Accept", "application/json");
+		var reader = new InputStreamReader(con.getInputStream());
+		int responseCode = con.getResponseCode();
+		if (responseCode != HttpURLConnection.HTTP_OK)
+			throw new IOException("Failed to read response from " + endpoint + " endpoint: unexpected response code: "
+					+ responseCode);
+		T data = json.fromJson(reader, responseType);
+		return data;
+	}
+
+	private <T> T fetchJSON(String endpoint, Type responseType) throws IOException {
 		var obj = new URL(this.baseURL + endpoint);
 		var con = (HttpURLConnection) obj.openConnection();
 		con.setRequestMethod("GET");
