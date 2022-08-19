@@ -2,10 +2,12 @@ package org.codegame.client;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.WebSocket;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -22,7 +24,7 @@ public class Api {
 	private boolean tls;
 	private String baseURL;
 
-	private static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+	static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
 			.create();
 
 	public Api(String url) {
@@ -65,10 +67,6 @@ public class Api {
 		public String joinSecret;
 	}
 
-	public GameData createGame(boolean makePublic, boolean protect) throws IOException {
-		return createGame(makePublic, protect, null);
-	}
-
 	private class CreateGameRequest {
 		@SerializedName("public")
 		public boolean makePublic;
@@ -78,7 +76,7 @@ public class Api {
 		public Object config;
 	}
 
-	public GameData createGame(boolean makePublic, boolean protect, Object config) throws IOException {
+	GameData createGame(boolean makePublic, boolean protect, Object config) throws IOException {
 		var data = new CreateGameRequest();
 		data.makePublic = makePublic;
 		data.protect = protect;
@@ -93,7 +91,7 @@ public class Api {
 		public String secret;
 	}
 
-	public PlayerData createPlayer(String gameId, String username) throws IOException {
+	PlayerData createPlayer(String gameId, String username) throws IOException {
 		return createPlayer(gameId, username, "");
 	}
 
@@ -104,7 +102,7 @@ public class Api {
 		public String joinSecret;
 	}
 
-	public PlayerData createPlayer(String gameId, String username, String joinSecret) throws IOException {
+	PlayerData createPlayer(String gameId, String username, String joinSecret) throws IOException {
 		var data = new CreatePlayerRequest();
 		data.username = username;
 		data.joinSecret = joinSecret;
@@ -116,13 +114,21 @@ public class Api {
 		public String username;
 	}
 
-	public String fetchUsername(String gameId, String playerId) throws IOException {
+	String fetchUsername(String gameId, String playerId) throws IOException {
 		return fetchJSON("/api/games/" + gameId + "/players/" + playerId, FetchUsernameResponse.class).username;
 	}
 
-	public HashMap<String, String> fetchPlayers(String gameId) throws IOException {
+	HashMap<String, String> fetchPlayers(String gameId) throws IOException {
 		return fetchJSON("/api/games/" + gameId + "/players",
 				TypeToken.getParameterized(HashMap.class, String.class, String.class).getType());
+	}
+
+	WebSocket connectWebSocket(String endpoint, WSClient.OnMessageCallback onMessage,
+			WSClient.OnCloseCallback onClose) {
+		return HttpClient.newHttpClient().newWebSocketBuilder()
+				.buildAsync(URI.create(baseURL("ws", tls, url + endpoint)),
+						new WSClient(onMessage, onClose))
+				.join();
 	}
 
 	private <T> T postJSON(String endpoint, Object requestData, Class<T> responseType) throws IOException {
@@ -132,12 +138,14 @@ public class Api {
 		con.setRequestProperty("Content-Type", "application/json");
 
 		var reqData = json.toJson(requestData);
-		System.out.println("Data: " + reqData);
 		con.setDoOutput(true);
 		var os = con.getOutputStream();
-		os.write(reqData.getBytes());
-		os.flush();
-		os.close();
+		try {
+			os.write(reqData.getBytes());
+			os.flush();
+		} finally {
+			os.close();
+		}
 
 		int responseCode = con.getResponseCode();
 		if (responseCode != HttpURLConnection.HTTP_OK && responseCode != HttpURLConnection.HTTP_CREATED) {
@@ -146,8 +154,12 @@ public class Api {
 		}
 
 		InputStreamReader reader = new InputStreamReader(con.getInputStream());
-		T data = json.fromJson(reader, responseType);
-		return data;
+		try {
+			T data = json.fromJson(reader, responseType);
+			return data;
+		} finally {
+			reader.close();
+		}
 	}
 
 	private <T> T fetchJSON(String endpoint, Class<T> responseType) throws IOException {
@@ -156,12 +168,18 @@ public class Api {
 		con.setRequestMethod("GET");
 		con.setRequestProperty("Accept", "application/json");
 		var reader = new InputStreamReader(con.getInputStream());
-		int responseCode = con.getResponseCode();
-		if (responseCode != HttpURLConnection.HTTP_OK)
-			throw new IOException("Failed to read response from " + endpoint + " endpoint: unexpected response code: "
-					+ responseCode);
-		T data = json.fromJson(reader, responseType);
-		return data;
+		try {
+			int responseCode = con.getResponseCode();
+			if (responseCode != HttpURLConnection.HTTP_OK) {
+				throw new IOException(
+						"Failed to read response from " + endpoint + " endpoint: unexpected response code: "
+								+ responseCode);
+			}
+			T data = json.fromJson(reader, responseType);
+			return data;
+		} finally {
+			reader.close();
+		}
 	}
 
 	private <T> T fetchJSON(String endpoint, Type responseType) throws IOException {
@@ -170,12 +188,19 @@ public class Api {
 		con.setRequestMethod("GET");
 		con.setRequestProperty("Accept", "application/json");
 		var reader = new InputStreamReader(con.getInputStream());
-		int responseCode = con.getResponseCode();
-		if (responseCode != HttpURLConnection.HTTP_OK)
-			throw new IOException("Failed to read response from " + endpoint + " endpoint: unexpected response code: "
-					+ responseCode);
-		T data = json.fromJson(reader, responseType);
-		return data;
+		try {
+			int responseCode = con.getResponseCode();
+			if (responseCode != HttpURLConnection.HTTP_OK) {
+				reader.close();
+				throw new IOException(
+						"Failed to read response from " + endpoint + " endpoint: unexpected response code: "
+								+ responseCode);
+			}
+			T data = json.fromJson(reader, responseType);
+			return data;
+		} finally {
+			reader.close();
+		}
 	}
 
 	static String trimURL(String url) {
@@ -198,10 +223,17 @@ public class Api {
 		try {
 			var url = new URL(baseURL("http", true, trimmedURL) + "/api/info");
 			var connection = (HttpsURLConnection) url.openConnection();
-			connection.getInputStream();
-			if (connection.getSSLSession().isEmpty())
+			var stream = connection.getInputStream();
+			if (connection.getSSLSession().isEmpty()) {
+				stream.close();
 				return false;
-			return connection.getSSLSession().get().isValid();
+			}
+			if (!connection.getSSLSession().get().isValid()) {
+				stream.close();
+				return false;
+			}
+			stream.close();
+			return true;
 		} catch (IOException e) {
 			return false;
 		}
