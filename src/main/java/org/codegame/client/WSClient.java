@@ -4,7 +4,7 @@ import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CompletionStage;
 
-public class WSClient implements WebSocket.Listener {
+class WSClient implements WebSocket.Listener {
     @FunctionalInterface
     interface OnMessageCallback {
         void onMessage(String message);

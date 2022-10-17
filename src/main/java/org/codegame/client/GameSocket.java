@@ -13,8 +13,11 @@ import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 import org.fusesource.jansi.Ansi.*;
 
+/**
+ * Represents a connection to a game server.
+ */
 public class GameSocket {
-	private static final String cgVersion = "0.8";
+	private static final String cgVersion = "0.7";
 
 	@FunctionalInterface
 	public interface EventCallback<T> {
@@ -39,6 +42,13 @@ public class GameSocket {
 	private HashMap<String, Callbacks> eventListeners = new HashMap<>();
 	private CountDownLatch exitEvent = new CountDownLatch(1);
 
+	/**
+	 * Creates a new game socket.
+	 *
+	 * @param url The URL of the game server. The protocol should be omitted.
+	 * @throws IOException Thrown when the URL does not point to a valid CodeGame
+	 *                     game server.
+	 */
 	public GameSocket(String url) throws IOException {
 		AnsiConsole.systemInstall();
 		api = new Api(url);
@@ -50,14 +60,39 @@ public class GameSocket {
 		}
 	}
 
+	/**
+	 * Creates a new game on the server.
+	 *
+	 * @param makePublic Whether to make the created game public.
+	 * @param protect    Whether to protect the game with a join secret.
+	 * @param config     The game config.
+	 * @return Information about the created game. Including the game ID and the
+	 *         join secret when protected == true.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public Api.GameData createGame(boolean makePublic, boolean protect, Object config) throws IOException {
 		return api.createGame(makePublic, protect, config);
 	}
 
+	/**
+	 * Creates a new player in the game and connects to it.
+	 *
+	 * @param gameId   The ID of the game.
+	 * @param username The desired username.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public void join(String gameId, String username) throws IOException {
 		join(gameId, username, "");
 	}
 
+	/**
+	 * Creates a new player in the protected game and connects to it.
+	 *
+	 * @param gameId     The ID of the game.
+	 * @param username   The desired username.
+	 * @param joinSecret The join secret of the game.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public void join(String gameId, String username, String joinSecret) throws IOException {
 		if (session.gameURL != "")
 			throw new IllegalStateException("This socket is already connected to a  game.");
@@ -65,6 +100,13 @@ public class GameSocket {
 		connect(gameId, player.id, player.secret);
 	}
 
+	/**
+	 * Loads the session from disk and reconnects to the game.
+	 *
+	 * @param username The username of the session.
+	 * @throws IOException Thrown when the session doesn't exist or the request
+	 *                     fails.
+	 */
 	public void restoreSession(String username) throws IOException {
 		if (session.gameURL != "")
 			throw new IllegalStateException("This socket is already connected to a  game.");
@@ -77,6 +119,14 @@ public class GameSocket {
 		}
 	}
 
+	/**
+	 * Connects to a player on the server.
+	 *
+	 * @param gameId       The ID of the game.
+	 * @param playerId     The ID of the player.
+	 * @param playerSecret The secret of the player.
+	 * @throws IOException Thrown when the connection fails.
+	 */
 	public void connect(String gameId, String playerId, String playerSecret) throws IOException {
 		if (session.gameURL != "")
 			throw new IllegalStateException("This socket is already connected to a  game.");
@@ -96,6 +146,12 @@ public class GameSocket {
 		}
 	}
 
+	/**
+	 * Connects to a game as a spectator.
+	 *
+	 * @param gameId The ID of the game.
+	 * @throws IOException Thrown when the connection fails.
+	 */
 	public void spectate(String gameId) throws IOException {
 		if (session.gameURL != "")
 			throw new IllegalStateException("This socket is already connected to a  game.");
@@ -109,6 +165,9 @@ public class GameSocket {
 		usernameCache = api.fetchPlayers(gameId);
 	}
 
+	/**
+	 * Blocks until the connection is closed.
+	 */
 	public void listen() {
 		try {
 			exitEvent.await();
@@ -117,6 +176,9 @@ public class GameSocket {
 		}
 	}
 
+	/**
+	 * Close the underlying websocket connection.
+	 */
 	public void close() {
 		websocket.sendClose(WebSocket.NORMAL_CLOSURE, "Normal closure.");
 		listen();
@@ -137,6 +199,15 @@ public class GameSocket {
 		}
 	}
 
+	/**
+	 * Registers a callback that is triggered every time the event is received.
+	 *
+	 * @param <T>       The type of the event data.
+	 * @param eventName The name of the event.
+	 * @param type      The type of the event data.
+	 * @param callback  The callback function.
+	 * @return An ID that can be used to remove the callback.
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> String on(String eventName, Class<T> type, EventCallback<T> callback) {
 		if (!eventListeners.containsKey(eventName))
@@ -151,6 +222,15 @@ public class GameSocket {
 		return id;
 	}
 
+	/**
+	 * Registers a callback that is triggered the next time the event is received.
+	 *
+	 * @param <T>       The type of the event data.
+	 * @param eventName The name of the event.
+	 * @param type      The type of the event data.
+	 * @param callback  The callback function.
+	 * @return An ID that can be used to remove the callback.
+	 */
 	@SuppressWarnings("unchecked")
 	public <T> String once(String eventName, Class<T> type, EventCallback<T> callback) {
 		if (!eventListeners.containsKey(eventName))
@@ -168,6 +248,13 @@ public class GameSocket {
 		return id;
 	}
 
+	/**
+	 * Sends the command to the server.
+	 *
+	 * @param <T>         The type of the command data.
+	 * @param commandName The name of the command.
+	 * @param data        The command data.
+	 */
 	public <T> void send(String commandName, T data) {
 		if (websocket == null || session.getPlayerId().isEmpty())
 			throw new IllegalStateException("The socket is not connected to a player.");
@@ -176,12 +263,26 @@ public class GameSocket {
 		websocket.sendText(json, true).join();
 	}
 
+	/**
+	 * Removes the event callback.
+	 *
+	 * @param eventName The name of the event.
+	 * @param id        The ID of the callback.
+	 */
 	public void removeCallback(String eventName, String id) {
 		if (!eventListeners.containsKey(eventName))
 			return;
 		eventListeners.get(eventName).callbacks.remove(id);
 	}
 
+	/**
+	 * Retrieves the username of the player from the player cache or fetches it from
+	 * the server if it is not already there.
+	 *
+	 * @param playerID The ID of the player.
+	 * @return Ther usernamer of the player.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public String username(String playerID) throws IOException {
 		if (usernameCache.containsKey(playerID))
 			return usernameCache.get(playerID);
@@ -190,10 +291,17 @@ public class GameSocket {
 		return username;
 	}
 
+	/**
+	 * @return An instance of the Api class which can be used to make requests to
+	 *         the game server.
+	 */
 	public Api getApi() {
 		return api;
 	}
 
+	/**
+	 * @return The current session object.
+	 */
 	public Session getSession() {
 		return session;
 	}

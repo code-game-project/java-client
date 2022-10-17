@@ -2,12 +2,12 @@ package org.codegame.client;
 
 import org.apache.commons.lang3.SystemUtils;
 
-public class Dirs {
-    public static String UserHome() {
+class Dirs {
+    static String UserHome() {
         return System.getProperty("user.home");
     }
 
-    public static String DataHome() {
+    static String DataHome() {
         if (SystemUtils.IS_OS_WINDOWS)
             return DataHomeWindows();
         else if (SystemUtils.IS_OS_MAC)

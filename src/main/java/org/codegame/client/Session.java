@@ -13,6 +13,9 @@ import org.apache.commons.io.FilenameUtils;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * Represents a CodeGame session.
+ */
 public class Session {
     private static final String gamesPath = FilenameUtils.concat(Dirs.DataHome(), "codegame/games");
 
@@ -27,9 +30,21 @@ public class Session {
     @SerializedName("player_secret")
     String playerSecret = "";
 
+    /**
+     * Creates a new empty session.
+     */
     public Session() {
     }
 
+    /**
+     * Creates a new session.
+     *
+     * @param gameURL      The URL of the game.
+     * @param username     The username of the player.
+     * @param gameId       The ID of the game.
+     * @param playerId     The ID of the player.
+     * @param playerSecret The player secret.
+     */
     public Session(String gameURL, String username, String gameId, String playerId, String playerSecret) {
         this.gameURL = gameURL;
         this.username = username;
@@ -38,6 +53,14 @@ public class Session {
         this.playerSecret = playerSecret;
     }
 
+    /**
+     * Loads a session from disk.
+     *
+     * @param gameURL  The URL of the game.
+     * @param username The username of the player.
+     * @return The loaded session.
+     * @throws IOException Thrown when the session doesn't exist or is invalid.
+     */
     public static Session load(String gameURL, String username) throws IOException {
         var reader = new InputStreamReader(new FileInputStream(
                 FilenameUtils.concat(gamesPath, URLEncoder.encode(gameURL, "UTF-8") + "/" + username + ".json")));
@@ -56,6 +79,12 @@ public class Session {
         }
     }
 
+    /**
+     * Writes the session to disk.
+     *
+     * @throws IOException Thrown when the session file cannot be written.
+     * @throws Exception   Thrown when one or more fields of the session are empty.
+     */
     public void save() throws IOException, Exception {
         if (gameURL.isEmpty() || username.isEmpty() || gameId.isEmpty() || playerId.isEmpty()
                 || playerSecret.isEmpty()) {
@@ -73,6 +102,9 @@ public class Session {
         }
     }
 
+    /**
+     * Deletes the session file.
+     */
     public void remove() {
         try {
             if (gameURL.isEmpty())
@@ -89,22 +121,37 @@ public class Session {
         }
     }
 
+    /**
+     * @return The URL of the game.
+     */
     public String getGameURL() {
         return gameURL;
     }
 
+    /**
+     * @return The username of the player.
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * @return The ID of the game.
+     */
     public String getGameId() {
         return gameId;
     }
 
+    /**
+     * @return The ID of the player.
+     */
     public String getPlayerId() {
         return playerId;
     }
 
+    /**
+     * @return The player secret.
+     */
     public String getPlayerSecret() {
         return playerSecret;
     }

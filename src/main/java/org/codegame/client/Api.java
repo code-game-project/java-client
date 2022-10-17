@@ -19,21 +19,27 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 
+/**
+ * Common methods for interfacing with CodeGame game servers.
+ */
 public class Api {
 	private String url;
 	private boolean tls;
 	private String baseURL;
 
-	public static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+	static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
 			.create();
 
-	public Api(String url) {
+	Api(String url) {
 		HttpURLConnection.setFollowRedirects(true);
 		this.url = trimURL(url);
 		this.tls = isTLS(this.url);
 		this.baseURL = Api.baseURL("http", this.tls, this.url);
 	}
 
+	/**
+	 * Game info from the `/api/info` endpoint.
+	 */
 	public class GameInfo {
 		@SerializedName("name")
 		public String name;
@@ -49,14 +55,29 @@ public class Api {
 		public String repositoryURL;
 	}
 
+	/**
+	 * Fetches game info from the `/api/info` endpoint.
+	 *
+	 * @return An instance of the GameInfo class.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public GameInfo fetchInfo() throws IOException {
 		return fetchJSON("/api/info", GameInfo.class);
 	}
 
-	public static class GameConfigResponse<T> {
+	private static class GameConfigResponse<T> {
 		public T config;
 	}
 
+	/**
+	 * Fetches the config of the game.
+	 *
+	 * @param <T>         The type of the game config.
+	 * @param gameId      The ID of the game.
+	 * @param configClass The class of the game config.
+	 * @return An instance of T.
+	 * @throws IOException Thrown when the request fails.
+	 */
 	public <T> T fetchGameConfig(String gameId, Class<T> configClass) throws IOException {
 		GameConfigResponse<T> response = fetchJSON("/api/games/" + gameId,
 				TypeToken.getParameterized(GameConfigResponse.class,
@@ -243,14 +264,23 @@ public class Api {
 		}
 	}
 
+	/**
+	 * @return The URL of the game server without any protocol.
+	 */
 	public String getURL() {
 		return url;
 	}
 
+	/**
+	 * @return The URL of the game server prepended with http:// or https://.
+	 */
 	public String getBaseURL() {
 		return baseURL;
 	}
 
+	/**
+	 * @return Whether the game server supports TLS.
+	 */
 	public boolean isTLS() {
 		return tls;
 	}
