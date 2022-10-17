@@ -9,7 +9,13 @@ import java.util.concurrent.CountDownLatch;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 
+import org.fusesource.jansi.Ansi;
+import org.fusesource.jansi.AnsiConsole;
+import org.fusesource.jansi.Ansi.*;
+
 public class GameSocket {
+	private static final String cgVersion = "0.8";
+
 	@FunctionalInterface
 	public interface EventCallback<T> {
 		void cb(T data);
@@ -33,8 +39,15 @@ public class GameSocket {
 	private HashMap<String, Callbacks> eventListeners = new HashMap<>();
 	private CountDownLatch exitEvent = new CountDownLatch(1);
 
-	public GameSocket(String url) {
+	public GameSocket(String url) throws IOException {
+		AnsiConsole.systemInstall();
 		api = new Api(url);
+		var info = api.fetchInfo();
+		if (!isVersionCompatible(info.cgVersion)) {
+			System.out.println(Ansi.ansi().fg(Color.YELLOW)
+					.a("WARNING: CodeGame version mismatch. Server: v" + info.cgVersion + ", client: v" + cgVersion)
+					.reset());
+		}
 	}
 
 	public Api.GameData createGame(boolean makePublic, boolean protect, Object config) throws IOException {
@@ -156,7 +169,7 @@ public class GameSocket {
 	}
 
 	public <T> void send(String commandName, T data) {
-		if (websocket == null || session.getPlayerId() == "")
+		if (websocket == null || session.getPlayerId().isEmpty())
 			throw new IllegalStateException("The socket is not connected to a player.");
 		Event<T> e = new Event<>(commandName, data);
 		var json = Api.json.toJson(e, TypeToken.getParameterized(Event.class, data.getClass()).getType());
@@ -204,5 +217,28 @@ public class GameSocket {
 
 	private void onClose() {
 		exitEvent.countDown();
+	}
+
+	private static boolean isVersionCompatible(String serverVersion) {
+		var serverParts = serverVersion.split("\\.");
+		if (serverParts.length == 1)
+			serverParts = new String[] { serverParts[0], "0" };
+		var clientParts = cgVersion.split("\\.");
+		if (clientParts.length == 1)
+			clientParts = new String[] { clientParts[0], "0" };
+
+		if (!serverParts[0].equals(clientParts[0]))
+			return false;
+
+		if (clientParts[0].equals("0"))
+			return serverParts[1].equals(clientParts[1]);
+
+		try {
+			var serverMinor = Integer.parseInt(serverParts[1]);
+			var clientMinor = Integer.parseInt(clientParts[1]);
+			return clientMinor <= serverMinor;
+		} catch (NumberFormatException e) {
+			return false;
+		}
 	}
 }

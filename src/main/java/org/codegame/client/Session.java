@@ -43,8 +43,9 @@ public class Session {
                 FilenameUtils.concat(gamesPath, URLEncoder.encode(gameURL, "UTF-8") + "/" + username + ".json")));
         try {
             var session = Api.json.fromJson(reader, Session.class);
-            if (session.gameId == null || session.gameId == "" || session.playerId == null || session.playerId == ""
-                    || session.playerSecret == null || session.playerSecret == "") {
+            if (session.gameId == null || session.gameId.isEmpty() || session.playerId == null
+                    || session.playerId.isEmpty()
+                    || session.playerSecret == null || session.playerSecret.isEmpty()) {
                 throw new IOException("Incomplete session file.");
             }
             session.gameURL = gameURL;
@@ -56,7 +57,8 @@ public class Session {
     }
 
     public void save() throws IOException, Exception {
-        if (gameURL == "" || username == "" || gameId == "" || playerId == "" || playerSecret == "") {
+        if (gameURL.isEmpty() || username.isEmpty() || gameId.isEmpty() || playerId.isEmpty()
+                || playerSecret.isEmpty()) {
             throw new Exception("Incomplete session file.");
         }
         var dir = new File(FilenameUtils.concat(gamesPath, URLEncoder.encode(gameURL, "UTF-8")));
@@ -73,7 +75,7 @@ public class Session {
 
     public void remove() {
         try {
-            if (gameURL == "")
+            if (gameURL.isEmpty())
                 return;
 
             var dir = new File(FilenameUtils.concat(gamesPath, URLEncoder.encode(gameURL, "UTF-8")));
