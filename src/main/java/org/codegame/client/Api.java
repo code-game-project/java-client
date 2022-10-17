@@ -24,7 +24,7 @@ public class Api {
 	private boolean tls;
 	private String baseURL;
 
-	static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+	public static Gson json = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
 			.create();
 
 	public Api(String url) {
@@ -51,6 +51,10 @@ public class Api {
 
 	public GameInfo fetchInfo() throws IOException {
 		return fetchJSON("/api/info", GameInfo.class);
+	}
+
+	public static class GameConfigResponse<T> {
+		public T config;
 	}
 
 	public <T> T fetchGameConfig(String gameId, Class<T> configClass) throws IOException {
