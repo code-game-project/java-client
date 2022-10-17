@@ -107,11 +107,4 @@
 	  </plugins>
     </pluginManagement>
   </build>
-  <distributionManagement>
-     <repository>
-       <id>github</id>
-       <name>CodeGame java-client</name>
-       <url>https://maven.pkg.github.com/code-game-project/java-client</url>
-     </repository>
-  </distributionManagement>
 </project>

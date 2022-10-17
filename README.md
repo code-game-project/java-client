@@ -4,17 +4,6 @@
 
 The Java client library for [CodeGame](https://code-game.org).
 
-## Installation
-
-Add this to your *pom.xml*:
-```xml
-<dependency>
-  <groupId>org.codegame</groupId>
-  <artifactId>client</artifactId>
-  <version>0.1.0</version>
-</dependency>
-```
-
 ## Usage
 
 ```java
