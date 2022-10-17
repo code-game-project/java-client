@@ -4,6 +4,47 @@
 
 The Java client library for [CodeGame](https://code-game.org).
 
+## Installation
+
+Add this to your *pom.xml*:
+```xml
+<dependency>
+  <groupId>org.codegame</groupId>
+  <artifactId>client</artifactId>
+  <version>0.1.0</version>
+</dependency>
+```
+
+## Usage
+
+```java
+// Create a new game socket.
+var socket = new GameSocket("games.code-game.org/example");
+
+// Create a new private game.
+var game = socket.createGame(false, false, null);
+
+// Join a game.
+socket.join(game.id, "username");
+
+// Spectate a game.
+socket.spectate(game.id);
+
+// Connect with an existing session.
+socket.restoreSession("username");
+
+// Register an event listener for the `my_event` event.
+socket.on("my_event", MyEvent.class, (data) -> {
+	// TODO: do something with `data`
+});
+
+// Send a `hello_world` command.
+socket.send("hello_world", new HelloWorldCmd("Hello, World!"));
+
+// Wait until the connection is closed.
+socket.listen();
+```
+
 ## License
 
 MIT License
