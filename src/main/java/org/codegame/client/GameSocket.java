@@ -83,7 +83,7 @@ public class GameSocket {
 		}
 	}
 
-	public void connect(String gameId) throws IOException {
+	public void spectate(String gameId) throws IOException {
 		if (session.gameURL != "")
 			throw new IllegalStateException("This socket is already connected to a  game.");
 
@@ -167,6 +167,14 @@ public class GameSocket {
 		if (!eventListeners.containsKey(eventName))
 			return;
 		eventListeners.get(eventName).callbacks.remove(id);
+	}
+
+	public String username(String playerID) throws IOException {
+		if (usernameCache.containsKey(playerID))
+			return usernameCache.get(playerID);
+		var username = api.fetchUsername(session.gameId, playerID);
+		usernameCache.put(playerID, username);
+		return username;
 	}
 
 	public Api getApi() {
