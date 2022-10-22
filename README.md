@@ -1,6 +1,7 @@
 # Java-Client
 ![CodeGame Version](https://img.shields.io/badge/CodeGame-v0.7-orange)
 ![Java Version](https://img.shields.io/badge/Java-17-brown)
+[![Javadoc](https://img.shields.io/badge/Javadoc-latest-green)](https://jitpack.io/com/github/code-game-project/java-client/latest/javadoc/)
 
 The Java client library for [CodeGame](https://code-game.org).
 
