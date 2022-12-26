@@ -148,11 +148,13 @@ public class Api {
 				TypeToken.getParameterized(HashMap.class, String.class, String.class).getType());
 	}
 
-	WebSocket connectWebSocket(String endpoint, WSClient.OnMessageCallback onMessage,
+	WebSocket connectWebSocket(String endpoint, String playerSecret, WSClient.OnMessageCallback onMessage,
 			WSClient.OnCloseCallback onClose) {
-		return HttpClient.newHttpClient().newWebSocketBuilder()
-				.buildAsync(URI.create(baseURL("ws", tls, url + endpoint)),
-						new WSClient(onMessage, onClose))
+		var builder = HttpClient.newHttpClient().newWebSocketBuilder();
+		if (playerSecret != null && !playerSecret.isEmpty())
+			builder.header("Player-Secret", playerSecret);
+		return builder.buildAsync(URI.create(baseURL("ws", tls, url + endpoint)),
+				new WSClient(onMessage, onClose))
 				.join();
 	}
 

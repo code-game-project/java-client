@@ -17,7 +17,7 @@ import org.fusesource.jansi.Ansi.*;
  * Represents a connection to a game server.
  */
 public class GameSocket {
-	private static final String cgVersion = "0.7";
+	private static final String cgVersion = "0.8";
 
 	@FunctionalInterface
 	public interface EventCallback<T> {
@@ -132,7 +132,7 @@ public class GameSocket {
 			throw new IllegalStateException("This socket is already connected to a  game.");
 
 		websocket = api.connectWebSocket(
-				"/api/games/" + gameId + "/connect?player_id=" + playerId + "&player_secret=" + playerSecret,
+				"/api/games/" + gameId + "/players/" + playerId + "/connect", playerSecret,
 				(String message) -> onMessage(message), () -> onClose());
 
 		session = new Session(api.getURL(), "", gameId, playerId, playerSecret);
@@ -157,7 +157,7 @@ public class GameSocket {
 			throw new IllegalStateException("This socket is already connected to a  game.");
 
 		websocket = api.connectWebSocket(
-				"/api/games/" + gameId + "/spectate",
+				"/api/games/" + gameId + "/spectate", null,
 				(String message) -> onMessage(message), () -> onClose());
 
 		session = new Session(api.getURL(), "", gameId, "", "");
