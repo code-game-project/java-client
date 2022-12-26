@@ -152,7 +152,7 @@ public class Api {
 			WSClient.OnCloseCallback onClose) {
 		var builder = HttpClient.newHttpClient().newWebSocketBuilder();
 		if (playerSecret != null && !playerSecret.isEmpty())
-			builder.header("Player-Secret", playerSecret);
+			builder.header("CG-Player-Secret", playerSecret);
 		return builder.buildAsync(URI.create(baseURL("ws", tls, url + endpoint)),
 				new WSClient(onMessage, onClose))
 				.join();
