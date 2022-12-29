@@ -132,7 +132,7 @@ public class GameSocket {
 			throw new IllegalStateException("This socket is already connected to a  game.");
 
 		websocket = api.connectWebSocket(
-				"/api/games/" + gameId + "/players/" + playerId + "/connect", playerSecret,
+				"/api/games/" + gameId + "/players/" + playerId + "/connect?player_secret=" + playerSecret,
 				(String message) -> onMessage(message), () -> onClose());
 
 		session = new Session(api.getURL(), "", gameId, playerId, playerSecret);
@@ -157,7 +157,7 @@ public class GameSocket {
 			throw new IllegalStateException("This socket is already connected to a  game.");
 
 		websocket = api.connectWebSocket(
-				"/api/games/" + gameId + "/spectate", null,
+				"/api/games/" + gameId + "/spectate",
 				(String message) -> onMessage(message), () -> onClose());
 
 		session = new Session(api.getURL(), "", gameId, "", "");
